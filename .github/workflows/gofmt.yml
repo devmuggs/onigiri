@@ -1,0 +1,20 @@
+name: Go Format Check
+
+on:
+    push:
+    pull_request:
+
+jobs:
+    gofmt:
+        runs-on: ubuntu-latest
+        container: golang:1.20-alpine
+
+        steps:
+            - uses: actions/checkout@v3
+            - run: |
+                  unformatted=$(gofmt -l .)
+                  if [ -n "$unformatted" ]; then
+                    echo "Go files not formatted:"
+                    echo "$unformatted"
+                    exit 1
+                  fi

@@ -12,12 +12,50 @@ services:
         ports:
             - "5432:5432"
         volumes:
-            # - pgdata:/var/lib/postgresql/data
             - ./init.sql:/docker-entrypoint-initdb.d/init.sql
         healthcheck:
             test: ["CMD-SHELL", "pg_isready -U onigiri"]
             interval: 10s
             timeout: 5s
             retries: 5
-# volumes:
-#     pgdata:
+
+    redis:
+        image: redis:alpine
+        container_name: onigiri-redis
+        restart: unless-stopped
+        ports:
+            - "6379:6379"
+
+    minio:
+        image: minio/minio
+        container_name: onigiri-minio
+        command: server /data --console-address ":9001"
+        environment:
+            MINIO_ROOT_USER: onigiri
+            MINIO_ROOT_PASSWORD: onigiri123
+        ports:
+            - "9000:9000" # API
+            - "9001:9001" # Web UI
+        volumes:
+            - minio_data:/data
+
+    loki:
+        image: grafana/loki:2.9.4
+        container_name: onigiri-loki
+        ports:
+            - "3100:3100"
+        command: -config.file=/etc/loki/local-config.yaml
+
+    grafana:
+        image: grafana/grafana-oss:10.3.1
+        container_name: onigiri-grafana
+        ports:
+            - "3000:3000"
+        environment:
+            - GF_SECURITY_ADMIN_USER=admin
+            - GF_SECURITY_ADMIN_PASSWORD=admin
+        depends_on:
+            - loki
+
+volumes:
+    minio_data:

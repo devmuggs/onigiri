@@ -1,0 +1,10 @@
+version: "3.8"
+
+services:
+    mailpit:
+        image: axllent/mailpit:latest
+        container_name: mailpit
+        ports:
+            - "8025:8025" # Mailpit web UI
+            - "1025:1025" # SMTP port for your app to send emails
+        restart: unless-stopped
