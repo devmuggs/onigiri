@@ -7,9 +7,10 @@ import (
 
 type Service interface {
 	GetUser(ctx context.Context, id int64) (*User, error)
-	CreateUser(ctx context.Context, user *User) error
+	CreateUser(ctx context.Context, user *CreateInput) error
 	UpdateUser(ctx context.Context, id int64, user *User) error
 	GetAllUsers(ctx context.Context) ([]*User, error)
+	GetUserByEmail(ctx context.Context, email string) (*UserRecord, error)
 }
 
 type userService struct {
@@ -24,8 +25,8 @@ func (s *userService) GetUser(ctx context.Context, id int64) (*User, error) {
 	return s.repo.GetByID(ctx, id)
 }
 
-func (s *userService) CreateUser(ctx context.Context, user *User) error {
-	if user.Username == "" {
+func (s *userService) CreateUser(ctx context.Context, user *CreateInput) error {
+	if user.Email == "" {
 		return fmt.Errorf("username required")
 	}
 
@@ -33,7 +34,7 @@ func (s *userService) CreateUser(ctx context.Context, user *User) error {
 }
 
 func (s *userService) UpdateUser(ctx context.Context, id int64, user *User) error {
-	if user.Username == "" {
+	if user.Email == "" {
 		return fmt.Errorf("username required")
 	}
 
@@ -42,4 +43,8 @@ func (s *userService) UpdateUser(ctx context.Context, id int64, user *User) erro
 
 func (s *userService) GetAllUsers(ctx context.Context) ([]*User, error) {
 	return s.repo.GetAll(ctx)
+}
+
+func (s *userService) GetUserByEmail(ctx context.Context, email string) (*UserRecord, error) {
+	return s.repo.FindUserByEmail(ctx, email)
 }

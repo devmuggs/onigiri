@@ -12,6 +12,7 @@ import (
 
 	"github.com/devmuggs/onigiri/server/internal/config"
 	"github.com/devmuggs/onigiri/server/internal/db"
+	"github.com/devmuggs/onigiri/server/internal/features/auth"
 	"github.com/devmuggs/onigiri/server/internal/features/users"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
@@ -47,7 +48,11 @@ func run() error {
 
 	r := chi.NewRouter()
 	r.Get("/api/hello-world", helloHandler)
-	r.Mount("/api", users.NewRouter(database.Pool, logger))
+
+	r.Route("/api", func(r chi.Router) {
+		r.Mount("/users", users.NewRouter(database.Pool, logger))
+		r.Mount("/auth", auth.NewRouter(database.Pool, logger))
+	})
 
 	logger.Info("Starting Onigiri server")
 

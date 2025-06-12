@@ -22,7 +22,6 @@ func (h *Handler) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.Get("/{id}", h.GetUser)
 	r.Get("/", h.GetAllUsers)
-	r.Post("/", h.CreateUser)
 	r.Post("/{id}", h.UpdateUser)
 	return r
 }
@@ -70,22 +69,6 @@ func (h *Handler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(users)
 }
 
-func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
-	var input User
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		http.Error(w, "invalid json", http.StatusBadRequest)
-		return
-	}
-
-	if err := h.service.CreateUser(r.Context(), &input); err != nil {
-		h.logger.Error("createUser error", zap.Error(err))
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(input)
-}
 func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	var input User
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {

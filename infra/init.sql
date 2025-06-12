@@ -1,8 +1,9 @@
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
-    username TEXT NOT NULL UNIQUE,
     display_name TEXT,
+    password TEXT NOT NULL,
     email TEXT UNIQUE,
+    avatar TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE NULL,
     deleted_at TIMESTAMP WITH TIME ZONE NULL

@@ -12,8 +12,10 @@ import (
 type UserRepository interface {
 	GetByID(ctx context.Context, id int64) (*User, error)
 	GetAll(ctx context.Context) ([]*User, error)
-	Create(ctx context.Context, user *User) error
+	Create(ctx context.Context, user *CreateInput) error
 	Update(ctx context.Context, id int64, user *User) error
+
+	FindUserByEmail(ctx context.Context, email string) (*UserRecord, error)
 }
 
 type userRepo struct {
@@ -27,13 +29,12 @@ func NewUserRepo(pool *pgxpool.Pool) UserRepository {
 func (r *userRepo) GetByID(ctx context.Context, id int64) (*User, error) {
 	u := &User{}
 	query := `
-		SELECT id, username, display_name, email, created_at, updated_at, deleted_at
+		SELECT id, display_name, email, created_at, updated_at, deleted_at
 		FROM users
 		WHERE id = $1 AND deleted_at IS NULL
 	`
 	err := r.pool.QueryRow(ctx, query, id).Scan(
 		&u.ID,
-		&u.Username,
 		&u.DisplayName,
 		&u.Email,
 		&u.CreatedAt,
@@ -54,7 +55,7 @@ func (r *userRepo) GetByID(ctx context.Context, id int64) (*User, error) {
 
 func (r *userRepo) GetAll(ctx context.Context) ([]*User, error) {
 	query := `
-		SELECT id, username, display_name, email, created_at, updated_at, deleted_at
+		SELECT id, display_name, email, created_at, updated_at, deleted_at
 		FROM users
 		WHERE deleted_at IS NULL
 	`
@@ -70,7 +71,6 @@ func (r *userRepo) GetAll(ctx context.Context) ([]*User, error) {
 		u := &User{}
 		err := rows.Scan(
 			&u.ID,
-			&u.Username,
 			&u.DisplayName,
 			&u.Email,
 			&u.CreatedAt,
@@ -93,14 +93,13 @@ func (r *userRepo) GetAll(ctx context.Context) ([]*User, error) {
 func (r *userRepo) Update(ctx context.Context, id int64, u *User) error {
 	query := `
 		UPDATE users
-		SET username = $1,
-			display_name = $2,
+		SET display_name = $2,
 			email = $3,
 			updated_at = NOW()
 		where id = $4 AND deleted_at IS NULL
 	`
 
-	commandTag, err := r.pool.Exec(ctx, query, u.Username, u.DisplayName, u.Email, id)
+	commandTag, err := r.pool.Exec(ctx, query, u.DisplayName, u.Email, id)
 	if err != nil {
 		return err
 	}
@@ -112,21 +111,62 @@ func (r *userRepo) Update(ctx context.Context, id int64, u *User) error {
 	return nil
 }
 
-func (r *userRepo) Create(ctx context.Context, user *User) error {
+type CreateInput struct {
+	ID          int64  `json:"id"`
+	DisplayName string `json:"display_name"`
+	Email       string `json:"email"`
+	Password    string `json:"password"`
+}
+
+func (r *userRepo) Create(ctx context.Context, input *CreateInput) error {
 	query := `
 		INSERT INTO users (
-			username, 
 			display_name, 
 			email, 
+			password,
 			created_at
 		) 
 		VALUES ($1, $2, $3, NOW()) 
 		RETURNING id`
 
-	err := r.pool.QueryRow(ctx, query, user.Username, user.DisplayName, user.Email).Scan(&user.ID)
+	err := r.pool.QueryRow(ctx, query, input.DisplayName, input.Email, input.Password).Scan(&input.ID)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+type UserRecord struct {
+	User
+	HashedPassword string
+}
+
+func (r *userRepo) FindUserByEmail(ctx context.Context, email string) (*UserRecord, error) {
+	u := &UserRecord{}
+	query := `
+		SELECT id, display_name, email, password, created_at, updated_at, deleted_at
+		FROM users
+		WHERE email = $1
+	`
+
+	err := r.pool.QueryRow(ctx, query, email).Scan(
+		&u.ID,
+		&u.DisplayName,
+		&u.Email,
+		&u.HashedPassword,
+		&u.CreatedAt,
+		&u.UpdatedAt,
+		&u.DeletedAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+
+		return nil, err
+	}
+
+	return u, nil
 }

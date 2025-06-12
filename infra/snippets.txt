@@ -1,0 +1,9 @@
+// start docker instances
+docker-compose -p onigiri up -d
+
+// run init.sql
+docker exec -it onigiri-postgres psql -U onigiri -d onigiri -f /docker-entrypoint-initdb.d/init.sql
+
+// reset table
+docker exec -i onigiri-postgres psql -U onigiri -d onigiri -c "DROP SCHEMA public CASCADE"
+docker exec -i onigiri-postgres psql -U onigiri -d onigiri -c "CREATE SCHEMA public"
